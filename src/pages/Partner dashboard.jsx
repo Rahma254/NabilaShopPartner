@@ -14,6 +14,7 @@ if (!productName || !price || !stock || !image) {
   setFeedback("❌ Semua field wajib diisi.");
   setUploading(false);
   return;
+  
 }
 
 try {
