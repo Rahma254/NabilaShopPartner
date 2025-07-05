@@ -1,0 +1,115 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Partner Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+    const { useState } = React;
+
+    const supabase = supabase.createClient(
+      'https://pjaxvrmfxmygghtsaosp.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    );
+
+    function PartnerDashboard() {
+      const [productName, setProductName] = useState("");
+      const [price, setPrice] = useState("");
+      const [stock, setStock] = useState("");
+      const [image, setImage] = useState(null);
+      const [previewUrl, setPreviewUrl] = useState(null);
+      const [uploading, setUploading] = useState(false);
+      const [feedback, setFeedback] = useState("");
+
+      const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        setImage(file);
+        setPreviewUrl(URL.createObjectURL(file));
+      };
+
+      const handleUpload = async () => {
+        setUploading(true);
+        setFeedback("");
+
+        if (!productName || !price || !stock || !image) {
+          setFeedback("❌ Semua field wajib diisi.");
+          setUploading(false);
+          return;
+        }
+
+        try {
+          const fileName = `${Date.now()}-${image.name}`;
+          const { data, error } = await supabase.storage
+            .from("products_media")
+            .upload(fileName, image);
+
+          if (error) throw error;
+
+          const { data: publicData } = supabase.storage
+            .from("products_media")
+            .getPublicUrl(fileName);
+
+          const { error: insertError } = await supabase
+            .from("products")
+            .insert({
+              name: productName,
+              price: parseFloat(price),
+              stock: parseInt(stock),
+              image_url: publicData.publicUrl,
+            });
+
+          if (insertError) throw insertError;
+
+          setFeedback("✅ Produk berhasil disimpan!");
+          setProductName("");
+          setPrice("");
+          setStock("");
+          setImage(null);
+          setPreviewUrl(null);
+        } catch (error) {
+          console.error(error);
+          setFeedback("❌ Gagal menyimpan produk.");
+        } finally {
+          setUploading(false);
+        }
+      };
+
+      return (
+        <div style={{ maxWidth: "500px", margin: "auto", padding: "2rem" }}>
+          <h2>Tambah Produk</h2>
+          <input type="text" placeholder="Nama Produk" value={productName}
+            onChange={(e) => setProductName(e.target.value)} />
+          <br /><br />
+          <input type="number" placeholder="Harga" value={price}
+            onChange={(e) => setPrice(e.target.value)} />
+          <br /><br />
+          <input type="number" placeholder="Stok" value={stock}
+            onChange={(e) => setStock(e.target.value)} />
+          <br /><br />
+          <input type="file" accept="image/*" onChange={handleImageChange} />
+          <br /><br />
+          {previewUrl && <img src={previewUrl} width="100" />}
+          <br /><br />
+          <button onClick={handleUpload}>
+            {uploading ? "Mengupload..." : "Simpan Produk"}
+          </button>
+          <br /><br />
+          <div>{feedback}</div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<PartnerDashboard />);
+  </script>
+</body>
+</html>
