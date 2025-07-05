@@ -1,6 +1,7 @@
 // Ambil isi file HTML dan inject ke #app
 fetch("frontend/home.page.html")
   .then(res => res.text())
+  
   .then(html => {
     document.getElementById("app").innerHTML = html;
 
